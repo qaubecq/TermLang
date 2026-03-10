@@ -1,13 +1,12 @@
+use terminal_size::{terminal_size,Width,Height};
 use std::io::{self, Write};
-use std::sync::Arc;
-use terminal_size::{Height, Width, terminal_size};
 
-fn render(sigma: Arc<Vec<Vec<(u8, u8, u8)>>>) -> std::io::Result<()> {
+pub fn render(sigma: &Vec<Vec<(u8, u8, u8)>>) -> std::io::Result<()> {
     if sigma.is_empty() {
         return Ok(());
     };
     if let Some((Width(w), Height(h))) = terminal_size() {
-        if w < sigma.len() as u16 || h < sigma[0].len() as u16 {
+        if h < sigma.len() as u16 || w < sigma[0].len() as u16 {
             return Err(io::Error::new(
                 io::ErrorKind::OutOfMemory,
                 "Sigma is too big for the current terminal size",
