@@ -3,23 +3,22 @@
 
 proc test(a) {
     define x;
-    define y;
+    define yiipi;
     x = 5;
     {
         define x;
-        x = 
-        a;
-        y = x;
+        x = a;
+        yiipi = x;
     }
     {
         [20, 20, 0] = x; // Should be x=5
     }
-    if y==3 {
-        define z
+    if yiipi==3 {
+        define z;
         z = 3;
     }
 }
 
-define y [11, 11, 0];
-y = 3;
+define yiipi [11,11,0];
+yiipi = 3;
 test(3);
