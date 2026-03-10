@@ -15,8 +15,9 @@ Termlang is a language that can only access a 3D memory represented in the termi
 
 ## Syntaxic sugars
 - Operations : + - * / % == > < >= <= ! & | ^ >> <<  ::=  builtin functions (a+b*c is not valid as it requires an extra memory cell, it must be done in two operations)
-- Defining variables : #def x [0,0,0]
+- Defining variables : define x [0,0,0]    |    define x
+- Stack : #stack (x1,y1) (x2,y2)   (allocates part of the memory to automatically assign defines that didn't specify the address, x2 and y2 are included)
 - Getting variable address (to pass reference as argument) : &x ::= 0,0,0
-- Getting address as argument : &arg ::= arg1,arg2,arg3
+- Getting address as argument (in function signature) : &arg ::= arg1,arg2,arg3    &    arg is replaced in the core of the function by arg1,arg2,arg3
 - Pointers : [0,0] ::= [0,0,0],[0,0,1],[0,0,2]
 - Functions : x = func(arg1) ::= func(arg1,$1,$2,$3)  &  return `<v>` ::= [$1,$2,$3] = `<v>`
