@@ -6,7 +6,7 @@ pub fn render(sigma: &Vec<Vec<(u8, u8, u8)>>) -> std::io::Result<()> {
         return Ok(());
     };
     if let Some((Width(w), Height(h))) = terminal_size() {
-        if h < sigma.len() as u16 || w < sigma[0].len() as u16 {
+        if h < (sigma.len() / 2) as u16 || w < sigma[0].len() as u16 {
             return Err(io::Error::new(
                 io::ErrorKind::OutOfMemory,
                 "Sigma is too big for the current terminal size",
