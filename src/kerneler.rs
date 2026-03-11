@@ -1,5 +1,22 @@
 use std::collections::HashMap;
 
+pub fn kernel(code: String) -> String {
+    let mut lines: Vec<CodeLine> = to_code_lines(code);
+    println!("{:?}", lines);
+    define(&mut lines);
+    println!("{:?}", lines);
+    reference(&mut lines);
+    println!("{:?}", lines);
+    arg_reference(&mut lines);
+    println!("{:?}", lines);
+
+
+    // Parse to remove excess spaces
+    // TODO
+
+    return "".to_string();
+}
+
 
 #[derive(Debug)]
 struct CodeLine {
@@ -7,23 +24,6 @@ struct CodeLine {
     pub depth: u8,   // How deep is the line in closures
     pub starts_closure: bool   // Wether this line is a function/procedure signature, if or while
 }
-
-
-pub fn kernel(code: String, formated: bool) -> String {
-    let mut lines: Vec<CodeLine> = to_code_lines(code);
-    println!("{:?}", lines);
-    define(&mut lines);
-    println!("{:?}", lines);
-
-
-    // Remove lines that start with # and get the terminal size
-
-    // Parse to remove excess spaces and closures, panic on invalid syntax (check if closure starts lines start with proc, if or while)
-    // TODO
-
-    return "".to_string();
-}
-
 
 fn to_code_lines(c: String) -> Vec<CodeLine> {
     // Remove comments
@@ -138,28 +138,32 @@ fn define(lines: &mut Vec<CodeLine>) {
     // Push global map
     maps.push(HashMap::new());
     let mut previous_depth = 0;
-    for line in lines {
+    let mut i = 0;
+    while i < lines.len() {
         // If we went one level deeper, add a HashMap to maps, if we went one level above, remove the top hash map
-        if line.depth > previous_depth {
+        if lines[i].depth > previous_depth {
             maps.push(HashMap::new());
-        } else if line.depth < previous_depth {
+        } else if lines[i].depth < previous_depth {
             maps.pop();
         }
-        previous_depth = line.depth;
+        previous_depth = lines[i].depth;
 
         // If the line is #stack x1 y1 x2 y2, activate the stack
-        if line.code.starts_with("#stack") {
-            let [x1, y1, x2, y2]: [u8; 4] = line.code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #stack command")).collect::<Vec<_>>().try_into().expect("Kerneler Error : Invalid #stack command");
+        if lines[i].code.starts_with("#stack") {
+            let [x1, y1, x2, y2]: [u8; 4] = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #stack command")).collect::<Vec<_>>().try_into().expect("Kerneler Error : Invalid #stack command");
             stack.activate((x1, y1), (x2, y2));
             println!("Kerneler Log : Stack activated with size {}", stack.get_used().1);
+            // Delete line
+            lines.remove(i);
+            continue;
         }
 
         // If the line startswith "define", add an entry to the top hashmap
-        if line.code.starts_with("define") {
-            let args: Vec<&str> = line.code.split_whitespace().skip(1).collect();
+        if lines[i].code.starts_with("define") {
+            let args: Vec<&str> = lines[i].code.split_whitespace().skip(1).collect();
             if args.len() == 1 {
                 if !stack.activated {
-                    panic!("Kerneler Error : define value unspecified with stack not activated\n | {}", line.code);
+                    panic!("Kerneler Error : define value unspecified with stack not activated\n | {}", lines[i].code);
                 }
                 let value = stack.get();
                 maps.last_mut().unwrap().insert(args[0].to_string(), format!("[{},{},{}]", value.0, value.1, value.2).to_string());
@@ -167,18 +171,20 @@ fn define(lines: &mut Vec<CodeLine>) {
             else if args.len() == 2 {
                 maps.last_mut().unwrap().insert(args[0].to_string(), args[1].to_string());
             } else {
-                panic!("Kerneler Error : Invalid number of arguments for define\n | {}", line.code);
+                panic!("Kerneler Error : Invalid number of arguments for define\n | {}", lines[i].code);
             }
+            // Delete line
+            lines.remove(i);
             continue;
         }
 
         // Iterate backwards on the string to replace all known defined names
         let mut current_word = String::new();
-        for i in (0..line.code.len()).rev() {
-            let c = line.code.chars().nth(i).unwrap();
-            if !c.is_alphanumeric() {
+        for j in (0..lines[i].code.len()).rev() {
+            let c = lines[i].code.chars().nth(j).unwrap();
+            if !(c.is_alphanumeric()||c=='_') {
                 if !current_word.is_empty() {
-                    replace_word(&maps, &current_word, &mut line.code, i+1);
+                    replace_word(&maps, &current_word, &mut lines[i].code, j+1);
                     current_word.clear();
                 }
             } else {
@@ -186,8 +192,32 @@ fn define(lines: &mut Vec<CodeLine>) {
             }
         }
         if !current_word.is_empty() {
-            replace_word(&maps, &current_word, &mut line.code, 0);
+            replace_word(&maps, &current_word, &mut lines[i].code, 0);
         }
+        i += 1;
+    }
+
+
+    // Remove unecessary closures (as they were only used for define scopes)
+    let mut removing_closure_depths: Vec<u8> = Vec::new(); // The different depths at which an unecessary closure was opened and needs to be closed, each line will get shifted back by removing_closure_depth.len()
+    let mut i = 0;
+    while i < lines.len() {
+        while !removing_closure_depths.is_empty() && lines[i].depth <= *removing_closure_depths.last().unwrap() {
+            removing_closure_depths.pop();
+        }
+        if lines[i].code.is_empty() && lines[i].starts_closure {
+            removing_closure_depths.push(lines[i].depth);
+            lines.remove(i);
+            continue;
+        }
+        if removing_closure_depths.is_empty() {
+            i += 1;
+            continue;
+        }
+        
+        // Shift back by removing_closure_depths.len()
+        lines[i].depth -= removing_closure_depths.len() as u8;
+        i += 1;
     }
 }
 
@@ -201,6 +231,70 @@ fn replace_word(maps: &Vec<HashMap<String, String>>, word: &String, line: &mut S
             line.replace_range(index..(index+word.len()), replacer);
             println!("Kerneler Log : Replaced occurence of {} that was previously defined with {} (<{}>  ==>  <{}>)", word, replacer, old_line, line);
             break;
+        }
+    }
+}
+
+
+fn reference(lines: &mut Vec<CodeLine>) {
+    for line in lines {
+        // Find the indices of &[ and corresponding ]
+        let mut start_remove_indices: Vec<usize> = Vec::new();
+        let mut end_remove_indices: Vec<usize> = Vec::new();
+        let mut in_bracket = false;
+        let mut depth: u8 = 0;
+        let mut i = 0;
+        while i < line.code.len() {
+            let c: char = line.code.chars().nth(i).unwrap();
+            if i < line.code.len()-1 && c == '&' && line.code.chars().nth(i+1).unwrap() == '[' && in_bracket==false {
+                in_bracket = true;
+                start_remove_indices.push(i);
+                depth = 0;
+                i += 1;
+            }
+            else if c == '[' && in_bracket {
+                depth += 1;
+            }
+            else if c == ']' && in_bracket && depth > 0 {
+                depth -= 1;
+            }
+            else if c == ']' && in_bracket && depth == 0 {
+                in_bracket = false;
+                end_remove_indices.push(i);
+            }
+            i += 1;
+        }
+        // check if lens are valid
+        if start_remove_indices.len() != end_remove_indices.len() {
+            panic!("Kerneler Error : &[ was never closed\n | {}", line.code);
+        }
+
+        // Remove
+        for i in (0..start_remove_indices.len()).rev() {
+            line.code.replace_range(end_remove_indices[i]..end_remove_indices[i]+1, "");
+            line.code.replace_range(start_remove_indices[i]..start_remove_indices[i]+2, "");
+        }
+    }
+}
+
+fn arg_reference(lines: &mut Vec<CodeLine>) {
+    for line in lines {
+        // Iterate backwards on the string to replace all &smth
+        let mut current_word = String::new();
+        for i in (0..line.code.len()).rev() {
+            let c = line.code.chars().nth(i).unwrap();
+            if !(c.is_alphanumeric()||c=='_') {
+                if c=='&' {
+                    if current_word.is_empty() {
+                        panic!("Kerneler Error : Isolated &\n | {}", line.code);
+                    }
+                    // Replace &current_word with current_word1,current_word2,current_word3
+                    line.code.replace_range(i..i+current_word.len()+1, format!("{current_word}_1,{current_word}_2,{current_word}_3").as_str());
+                }
+                current_word.clear();
+            } else {
+                current_word.insert(0, c);
+            }
         }
     }
 }

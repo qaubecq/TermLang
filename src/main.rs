@@ -11,5 +11,5 @@ fn main() {
     file.read_to_string(&mut contents).expect("Failed to read file");
 
     // Parse to kernel language
-    kernel(contents, true);
+    kernel(contents);
 }
