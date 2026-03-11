@@ -1,5 +1,4 @@
 use rand::RngExt;
-use std::time::Duration;
 mod renderer;
 
 use std::{
@@ -9,7 +8,6 @@ use std::{
 };
 
 type AtomicPixel = (AtomicU8, AtomicU8, AtomicU8);
-type Pixel = (u8, u8, u8);
 
 fn main() {
     let width = 255;
@@ -28,11 +26,9 @@ fn main() {
         renderer::render(render_sigma).unwrap();
     });
     let mut rng = rand::rng();
-    for i in 0.. {
-        let number = i % (width * height);
+    for _ in 0.. {
         for y in 0..height {
             for x in 0..width {
-                let _value = if y * width + x < number { 0 } else { 255 };
                 let (ref r, ref g, ref b) = sigma[y][x];
                 r.store(rng.random(), Ordering::Relaxed);
                 g.store(rng.random(), Ordering::Relaxed);

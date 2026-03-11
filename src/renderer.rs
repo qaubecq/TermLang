@@ -118,6 +118,7 @@ pub fn render(sigma: Arc<Vec<Vec<AtomicPixel>>>) -> std::io::Result<()> {
 
         let status_line = total_rows as u8 + 1;
         write_cursor_move(&mut buf, status_line, 1);
+        buf.extend_from_slice(b"\x1B[0m");
         buf.extend_from_slice(b"\x1B[2K");
         write!(buf, "Frame Time: {:?}", frame_start.elapsed())?;
         buf.extend_from_slice(b"\x1B[0m");
