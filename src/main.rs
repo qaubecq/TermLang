@@ -12,8 +12,8 @@ type AtomicPixel = (AtomicU8, AtomicU8, AtomicU8);
 type Pixel = (u8, u8, u8);
 
 fn main() {
-    let width = 100;
-    let height = 100;
+    let width = 255;
+    let height = 255;
     let sigma: Arc<Vec<Vec<AtomicPixel>>> = Arc::new(
         (0..height)
             .map(|_| {
@@ -25,26 +25,7 @@ fn main() {
     );
     let render_sigma = Arc::clone(&sigma);
     thread::spawn(move || {
-        print!("\x1B[2J\x1B[1;1H");
-        print!("\x1B[?25l");
-        loop {
-            let snapshot: Vec<Vec<Pixel>> = render_sigma
-                .iter()
-                .map(|row| {
-                    row.iter()
-                        .map(|(r, g, b)| {
-                            (
-                                r.load(Ordering::Relaxed),
-                                g.load(Ordering::Relaxed),
-                                b.load(Ordering::Relaxed),
-                            )
-                        })
-                        .collect()
-                })
-                .collect();
-            renderer::render(&snapshot).unwrap();
-            // thread::sleep(Duration::from_millis(10)); // Cap fps
-        }
+        renderer::render(render_sigma).unwrap();
     });
     let mut rng = rand::rng();
     for i in 0.. {
