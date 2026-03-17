@@ -1,32 +1,26 @@
 use core::panic;
-use std::collections::HashMap;
+use std::{collections::HashMap};
 
-pub fn kernel(code: String) -> String {
-    // Parse to remove excess spaces (remove all spaces around certain delimiters)
-    // TODO
+pub fn kernel(code: String) -> Vec<CodeLine> {
+
 
     let mut lines: Vec<CodeLine> = to_code_lines(code);
-    println!("{:?}", lines);
+    // Parse #size
     define(&mut lines);
-    println!("{:?}", lines);
+    remove_spaces(&mut lines);
     reference(&mut lines);
-    println!("{:?}", lines);
     arg_reference(&mut lines);
-    println!("{:?}", lines);
     pointer(&mut lines);
-    println!("{:?}", lines);
     function(&mut lines);
-    println!("{:?}", lines);
     function_call(&mut lines);
-    println!("{:?}", lines);
     
 
-    return "".to_string();
+    return lines;
 }
 
 
 #[derive(Debug)]
-struct CodeLine {
+pub struct CodeLine {
     pub code: String,  // The line of code
     pub depth: u8,   // How deep is the line in closures
     pub starts_closure: bool   // Wether this line is a function/procedure signature, if or while
@@ -82,6 +76,31 @@ fn to_code_lines(c: String) -> Vec<CodeLine> {
 
     return lines;
 }
+
+
+fn remove_spaces(lines : &mut Vec<CodeLine>) {
+    for line in lines {
+        line.code.retain(|c| !c.is_whitespace());
+    }
+}
+
+/*fn has_delimiter_neighbor(s: &String, i: usize, delimiters: &str) -> bool {
+    let mut current = i;
+    while current >= 0 && s.chars().nth(current).unwrap() == ' ' {
+        current -= 1;
+    }
+    if delimiters.contains(s.chars().nth(current).unwrap()) {
+        return true;
+    }
+    let mut current = i;
+    while current < s.len() && s.chars().nth(current).unwrap() == ' ' {
+        current += 1;
+    }
+    if delimiters.contains(s.chars().nth(current).unwrap()) {
+        return true;
+    }
+    return false;
+}*/
 
 
 struct Stack {
@@ -152,12 +171,10 @@ fn define(lines: &mut Vec<CodeLine>) {
             for _ in 0..(lines[i].depth-previous_depth) {
                 maps.push(HashMap::new());
             }
-            println!("===================== Stack at level {} ===================", maps.len());
         } else if lines[i].depth < previous_depth {
             for _ in 0..(previous_depth-lines[i].depth) {
                 maps.pop();
             }
-            println!("===================== Stack at level {} ===================", maps.len());
         }
         previous_depth = lines[i].depth;
 
@@ -165,7 +182,7 @@ fn define(lines: &mut Vec<CodeLine>) {
         if lines[i].code.starts_with("#stack") {
             let [x1, y1, x2, y2]: [u8; 4] = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #stack command")).collect::<Vec<_>>().try_into().expect("Kerneler Error : Invalid #stack command");
             stack.activate((x1, y1), (x2, y2));
-            println!("Kerneler Log : Stack activated with size {}", stack.get_used().1);
+            //println!("Kerneler Log : Stack activated with size {}", stack.get_used().1);
             // Delete line
             lines.remove(i);
             continue;
@@ -180,15 +197,9 @@ fn define(lines: &mut Vec<CodeLine>) {
                 }
                 let value = stack.get();
                 maps.last_mut().unwrap().insert(args[0].to_string(), format!("[{},{},{}]", value.0, value.1, value.2).to_string());
-                if args[0] == "x" {
-                    println!("Found declare x in depth : {}", lines[i].depth);
-                }
             }
             else if args.len() == 2 {
                 maps.last_mut().unwrap().insert(args[0].to_string(), args[1].to_string());
-                if args[0] == "x" {
-                    println!("Found declare x in depth : {}", lines[i].depth);
-                }
             } else {
                 panic!("Kerneler Error : Invalid number of arguments for define\n | {}", lines[i].code);
             }
@@ -214,6 +225,11 @@ fn define(lines: &mut Vec<CodeLine>) {
             replace_word(&maps, &current_word, &mut lines[i].code, 0);
         }
         i += 1;
+    }
+
+    // Print stack usage
+    if stack.activated {
+        println!("Stack : {} bytes used out of {}", stack.get_used().0, stack.get_used().1);
     }
 
 
@@ -246,9 +262,7 @@ fn replace_word(maps: &Vec<HashMap<String, String>>, word: &String, line: &mut S
     for map in maps.iter().rev() {
         if map.contains_key(word) {
             let replacer = map.get(word).unwrap();
-            let old_line = line.clone();
             line.replace_range(index..(index+word.len()), replacer);
-            println!("Kerneler Log : Replaced occurence of {} that was previously defined with {} (<{}>  ==>  <{}>)", word, replacer, old_line, line);
             break;
         }
     }
@@ -265,7 +279,7 @@ fn reference(lines: &mut Vec<CodeLine>) {
         let mut i = 0;
         while i < line.code.len() {
             let c: char = line.code.chars().nth(i).unwrap();
-            if i < line.code.len()-1 && c == '&' && line.code.chars().nth(i+1).unwrap() == '[' && in_bracket==false {
+            if i < line.code.len()-1 && c == '#' && line.code.chars().nth(i+1).unwrap() == '[' && in_bracket==false {
                 in_bracket = true;
                 start_remove_indices.push(i);
                 depth = 0;
@@ -303,7 +317,7 @@ fn arg_reference(lines: &mut Vec<CodeLine>) {
         for i in (0..line.code.len()).rev() {
             let c = line.code.chars().nth(i).unwrap();
             if !(c.is_alphanumeric()||c=='_') {
-                if c=='&' {
+                if c=='#' {
                     if current_word.is_empty() {
                         panic!("Kerneler Error : Isolated &\n | {}", line.code);
                     }
@@ -375,18 +389,20 @@ fn pointer(lines: &mut Vec<CodeLine>) {
 fn function(lines: &mut Vec<CodeLine>) {
     for line in lines {
         // Function declaration
-        if line.starts_closure && line.code.starts_with("fn") {
+        if line.starts_closure && line.code.starts_with("fn:") {
             // Insert '&1,&2,&3' right before the last char (')') if there are no arguments and ',&1,&2,&3' if there are
             if line.code.chars().nth(line.code.len()-2).unwrap() == '(' {
                 line.code.insert_str(line.code.len()-1, "$1,$2,$3");
             } else {
                 line.code.insert_str(line.code.len()-1, ",$1,$2,$3");
             }
+            // Replace fn: with proc:
+            line.code.replace_range(0..3, "proc:");
         }
 
         // Return
-        else if line.code.starts_with("return ") {
-            // Replace 'return ' with [$1,$2,$3]=
+        else if line.code.starts_with("return:") {
+            // Replace 'return:' with [$1,$2,$3]=
             line.code.replace_range(0..7, "[$1,$2,$3]=");
         }
     }

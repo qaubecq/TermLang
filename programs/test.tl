@@ -3,52 +3,52 @@
 
 define x;
 
-proc test(a, &ret) {
+proc: test(a, #ret) {
     define x;
     define yiipi;
-    x=5;
+    x = 5;
     {
         define x;
-        x=a;
-        yiipi=x;
+        x = a;
+        yiipi = x;
         {
-            x=10;
+            x = 10;
         }
     }
     {
-        [20,20,0]=x; // Should be x=5
+        [20, 20, 0] = x; // Should be x=5
     }
-    if yiipi==3 {
+    if (yiipi == 3) {
         define z;
-        z=3;
+        z = 3;
     }
 
-    [&ret]=x;
+    [ #ret ] =   x;
 }
 
-fn identity(a) {
-    return a;
+fn: identity(a) {
+    return:a;
 }
 
-fn one() {
-    return 1;
+fn: one() {
+    return:1;
 }
 
 x=identity(3);
 define patate;
-patate=one();
-x=x+patate;
-[[0,0]]=identity([0,1,2]);
+patate = one();
+x = x + patate;
+[ [0, 0] ] = identity( [0, 1, 2] );
 
-&x;
+#x;
 
-&[[0,0,0],[0,0,1],[0,0,2]];
+#[[0, 0, 0], [0, 0, 1], [0, 0, 2]];
 
 define yiipi [11,11,0];
-yiipi=3;
-test(3,&yiipi);
+yiipi = 3;
+test(3, #yiipi);
 
 // Pointer test
 define p [15,15];
 [p];
-[[[0,0,1],[0,0,2]]];
+[[[0, 0, 1], [0, 0, 2]]];
