@@ -1,6 +1,10 @@
+use core::panic;
 use std::collections::HashMap;
 
 pub fn kernel(code: String) -> String {
+    // Parse to remove excess spaces (remove all spaces around certain delimiters)
+    // TODO
+
     let mut lines: Vec<CodeLine> = to_code_lines(code);
     println!("{:?}", lines);
     define(&mut lines);
@@ -9,10 +13,9 @@ pub fn kernel(code: String) -> String {
     println!("{:?}", lines);
     arg_reference(&mut lines);
     println!("{:?}", lines);
-
-
-    // Parse to remove excess spaces
-    // TODO
+    pointers(&mut lines);
+    println!("{:?}", lines);
+    
 
     return "".to_string();
 }
@@ -289,11 +292,64 @@ fn arg_reference(lines: &mut Vec<CodeLine>) {
                         panic!("Kerneler Error : Isolated &\n | {}", line.code);
                     }
                     // Replace &current_word with current_word1,current_word2,current_word3
-                    line.code.replace_range(i..i+current_word.len()+1, format!("{current_word}_1,{current_word}_2,{current_word}_3").as_str());
+                    line.code.replace_range(i..i+current_word.len()+1, format!("{current_word}$1,{current_word}$2,{current_word}$3").as_str());
                 }
                 current_word.clear();
             } else {
                 current_word.insert(0, c);
+            }
+        }
+    }
+}
+
+
+fn pointers(lines: &mut Vec<CodeLine>) {
+    // Replaces [smth1,smth2] to [smth1,smth2,0],[smth1,smth2,1],[smth1,smth2,2]
+    for line in lines {
+        // Create a stack to push an empty string everytime ] is encountered, and pop the stack when [ is encountered (Pointers can't be in pointers so we can simply replace without caring about the rest of the string getting shifted)
+        let mut stack: Vec<String> = Vec::new();
+        for i in (0..line.code.len()).rev() {
+            let c = line.code.chars().nth(i).unwrap();
+            if c == '[' {
+                if stack.len() == 0 {
+                    panic!("Kerneler Error : Bracket was closed but never opened\n | {}", line.code);
+                }
+                let string = stack.pop().unwrap();
+                // Get the different elements (ignoring comas in brackets)
+                let mut things = Vec::new();
+                things.push(String::new());
+                let mut depth = 0;
+                for char in string.chars() {
+                    if char == '[' {
+                        depth += 1;
+                    }
+                    else if char == ']' {
+                        depth -= 1;
+                        if depth < 0 {
+                            panic!("Kerneler Error : Bracket was closed but never opened\n | {}", line.code);
+                        }
+                    }
+                    if char == ',' && depth == 0 {
+                        things.push(String::new());
+                    } else {
+                        things.last_mut().unwrap().push(char);
+                    }
+                }
+                if things.len() == 2 {
+                    let first = &things[0];
+                    let second = &things[1];
+                    // Replace
+                    line.code.replace_range(i..i+2+string.len(), format!("[{first},{second},0],[{first},{second},1],[{first},{second},2]").as_str());
+                }
+            }
+            if stack.len() > 0 {
+                // Add char to every item in the stack
+                for string in stack.iter_mut() {
+                    string.insert(0, c);
+                }
+            }
+            if c == ']' {
+                stack.push(String::new());
             }
         }
     }

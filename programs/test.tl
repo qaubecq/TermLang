@@ -31,3 +31,8 @@ proc test(a, &ret) {
 define yiipi [11,11,0];
 yiipi = 3;
 test(3, &yiipi);
+
+// Pointer test
+define p [15,15];
+[p];
+[[[0,0,1], [0,0,2]]];
