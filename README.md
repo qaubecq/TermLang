@@ -20,5 +20,5 @@ Termlang is a language that can only access a 3D memory represented in the termi
 - Getting variable address (to pass reference as argument) : &x ::= 0,0,0
 - Getting address as argument (in function signature) : &arg ::= arg1,arg2,arg3    &    &arg is replaced in the core of the function by arg1,arg2,arg3
 - Pointers : [0,0] ::= [0,0,0],[0,0,1],[0,0,2]
-- Functions : x = func(arg1) ::= func(arg1,x1,x2,x3)  &  return `<v>` ::= [$1,$2,$3] = `<v>`
+- Functions : x = func(arg1) ::= func(arg1,x1,x2,x3)  &  fn func(arg1) ::= proc func(arg1,$1,$2,$3)  &  return `<v>` ::= [$1,$2,$3] = `<v>`
 - if without else and else if

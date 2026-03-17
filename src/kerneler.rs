@@ -13,7 +13,11 @@ pub fn kernel(code: String) -> String {
     println!("{:?}", lines);
     arg_reference(&mut lines);
     println!("{:?}", lines);
-    pointers(&mut lines);
+    pointer(&mut lines);
+    println!("{:?}", lines);
+    function(&mut lines);
+    println!("{:?}", lines);
+    function_call(&mut lines);
     println!("{:?}", lines);
     
 
@@ -145,9 +149,15 @@ fn define(lines: &mut Vec<CodeLine>) {
     while i < lines.len() {
         // If we went one level deeper, add a HashMap to maps, if we went one level above, remove the top hash map
         if lines[i].depth > previous_depth {
-            maps.push(HashMap::new());
+            for _ in 0..(lines[i].depth-previous_depth) {
+                maps.push(HashMap::new());
+            }
+            println!("===================== Stack at level {} ===================", maps.len());
         } else if lines[i].depth < previous_depth {
-            maps.pop();
+            for _ in 0..(previous_depth-lines[i].depth) {
+                maps.pop();
+            }
+            println!("===================== Stack at level {} ===================", maps.len());
         }
         previous_depth = lines[i].depth;
 
@@ -170,9 +180,15 @@ fn define(lines: &mut Vec<CodeLine>) {
                 }
                 let value = stack.get();
                 maps.last_mut().unwrap().insert(args[0].to_string(), format!("[{},{},{}]", value.0, value.1, value.2).to_string());
+                if args[0] == "x" {
+                    println!("Found declare x in depth : {}", lines[i].depth);
+                }
             }
             else if args.len() == 2 {
                 maps.last_mut().unwrap().insert(args[0].to_string(), args[1].to_string());
+                if args[0] == "x" {
+                    println!("Found declare x in depth : {}", lines[i].depth);
+                }
             } else {
                 panic!("Kerneler Error : Invalid number of arguments for define\n | {}", lines[i].code);
             }
@@ -303,7 +319,7 @@ fn arg_reference(lines: &mut Vec<CodeLine>) {
 }
 
 
-fn pointers(lines: &mut Vec<CodeLine>) {
+fn pointer(lines: &mut Vec<CodeLine>) {
     // Replaces [smth1,smth2] to [smth1,smth2,0],[smth1,smth2,1],[smth1,smth2,2]
     for line in lines {
         // Create a stack to push an empty string everytime ] is encountered, and pop the stack when [ is encountered (Pointers can't be in pointers so we can simply replace without caring about the rest of the string getting shifted)
@@ -351,6 +367,95 @@ fn pointers(lines: &mut Vec<CodeLine>) {
             if c == ']' {
                 stack.push(String::new());
             }
+        }
+    }
+}
+
+
+fn function(lines: &mut Vec<CodeLine>) {
+    for line in lines {
+        // Function declaration
+        if line.starts_closure && line.code.starts_with("fn") {
+            // Insert '&1,&2,&3' right before the last char (')') if there are no arguments and ',&1,&2,&3' if there are
+            if line.code.chars().nth(line.code.len()-2).unwrap() == '(' {
+                line.code.insert_str(line.code.len()-1, "$1,$2,$3");
+            } else {
+                line.code.insert_str(line.code.len()-1, ",$1,$2,$3");
+            }
+        }
+
+        // Return
+        else if line.code.starts_with("return ") {
+            // Replace 'return ' with [$1,$2,$3]=
+            line.code.replace_range(0..7, "[$1,$2,$3]=");
+        }
+    }
+}
+
+
+fn function_call(lines: &mut Vec<CodeLine>) {
+    // Replace [smth1,smth2,smth3]=smth4(smth5) with smth4(smth5(,)smth1,smth2,smth3)
+    for line in lines {
+        if !line.starts_closure && line.code.chars().last().unwrap() == ')' && line.code.contains('=') {
+            let mut addr = vec![String::new(), String::new(), String::new()];
+            let mut addr_counter = 0;
+            let mut name = String::new();
+            let mut args = String::new();
+            let mut step = 0;
+            let mut depth = 0;
+            for i in (1..line.code.len()-1).rev() {
+                let c = line.code.chars().nth(i).unwrap();
+                match step {
+                    0 => {
+                        if c == '(' {
+                            step += 1;
+                        } else {
+                            args.insert(0, c);
+                        }
+                    },
+                    1 => {
+                        if c == '=' {
+                            step += 1;
+                        } else {
+                            name.insert(0, c);
+                        }
+                    },
+                    2 => {
+                        // Skip ] char
+                        step += 1;
+                    },
+                    3 => {
+                        if c == ']' {
+                            depth += 1;
+                        } else if c == '[' {
+                            depth -= 1;
+                            if depth < 0 {
+                                panic!("Kerneler Error : Bracket was opened but never closed\n | {}", line.code);
+                            }
+                        }
+                        if c == ',' && depth == 0 {
+                            addr_counter += 1;
+                        } else {
+                            addr[addr_counter].insert(0, c);
+                        }
+                    }
+                    _ => ()
+                }
+            }
+            if name.is_empty() {
+                panic!("Kerneler Error : Function call with no name\n | {}", line.code);
+            }
+            if addr[0].is_empty() || addr[1].is_empty() || addr[2].is_empty() {
+                panic!("Kerneler Error : Invalid memory address in function call\n | {}", line.code);
+            }
+            // if there are args before, add ',' before addr[2]
+            if !args.is_empty() {
+                addr[2].insert(0, ',');
+            }
+            let addr0 = &addr[2];
+            let addr1 = &addr[1];
+            let addr2 = &addr[0];
+            line.code = format!("{name}({args}{addr0},{addr1},{addr2})");
         }
     }
 }
