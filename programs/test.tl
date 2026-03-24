@@ -1,5 +1,5 @@
 #size 200 100;
-#stack 0 0 10 10;
+#stack 5 5 6 6;
 
 define x;
 
@@ -27,6 +27,14 @@ proc: test(a, #ret) {
         z = 3;
     } else if (cond2) {
         z = 4;
+        if (cond2) {
+            z = 1;
+        } else if (cond1) {
+            z = 2;
+        } else {
+            z = 3;
+        }
+        z = 6;
     }
 
     [ #ret ] =   x;

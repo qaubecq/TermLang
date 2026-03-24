@@ -18,11 +18,13 @@ pub fn kernel(code: String) -> (Vec<CodeLine>, [u8;2]) {
     reference(&mut lines);
     arg_reference(&mut lines);
     pointer(&mut lines);
+    function(&mut lines);
     dual_operations(&mut lines);
     mono_operations(&mut lines);
     memory_write(&mut lines);
-    function(&mut lines);
     function_call(&mut lines);
+    else_if(&mut lines);
+    missing_else(&mut lines);
 
     return (lines,size);
 }
@@ -150,7 +152,7 @@ impl Stack {
             self.current.0 += 1;
         } else if self.current.1 < self.end.1 {
             self.current.2 = 0;
-            self.current.0 = 0;
+            self.current.0 = self.start.0;
             self.current.1 += 1;
         } else {
             self.current.2 = 3;
@@ -576,12 +578,39 @@ fn memory_write(lines: &mut Vec<CodeLine>) {
 
 
 fn else_if(lines: &mut Vec<CodeLine>) {
-
+    for i in (0..lines.len()).rev() {
+        if lines[i].starts_closure && lines[i].code.starts_with("elseif") {
+            let depth = lines[i].depth+1;
+            // Insert if ... at i+1 with one more depth
+            lines.insert(i+1, CodeLine { code: lines[i].code[4..lines[i].code.len()].to_string(), depth: depth, starts_closure: true });
+            // Remove the end of the current line to keep only else
+            lines[i].code = "else".to_string();
+            // Shift all lines in the elseif
+            let mut j = i+2;
+            while j<lines.len() && (lines[j].depth >= depth || (lines[j].depth == lines[i].depth && lines[j].code.starts_with("else") && lines[j].starts_closure)) {
+                lines[j].depth += 1;
+                j += 1;
+            }
+        }
+    }
 }
 
 
 fn missing_else(lines: &mut Vec<CodeLine>) {
+    for i in (0..lines.len()).rev() {
+        if lines[i].starts_closure && lines[i].code.starts_with("if") {
+            let mut j = i+1;
+            // Jump to first line after if
+            while j<lines.len() && lines[j].depth >= lines[i].depth+1 {
+                j += 1;
+            }
 
+            // If it's already an else statement, do nothing, else insert an else statement
+            if !(lines[j].starts_closure && lines[j].code.starts_with("else")) {
+                lines.insert(j, CodeLine { code: "else".to_string(), depth: lines[i].depth, starts_closure: true });
+            }
+        }
+    }
 }
 
 
@@ -589,11 +618,12 @@ fn missing_else(lines: &mut Vec<CodeLine>) {
 pub fn format_kernel(lines: &mut Vec<CodeLine>) -> String {
     let mut result: String = String::new();
     let mut depth = 0;
+    let mut started_closure = false;
     for line in lines {
         // If new depth is smaller than current depth, add the right number of }
-        if line.depth < depth {
-            for i in 0..(depth-line.depth) {
-                result += &"    ".repeat((depth-(i+1)) as usize);
+        if line.depth < depth+(if started_closure {1} else {0}) {
+            for i in 0..(depth+(if started_closure {1} else {0})-line.depth) {
+                result += &"    ".repeat((depth+(if started_closure {1} else {0})-(i+1)) as usize);
                 result += "}\n";
             }
         }
@@ -603,14 +633,16 @@ pub fn format_kernel(lines: &mut Vec<CodeLine>) -> String {
         result += &line.code;
         if line.starts_closure {
             result.push('{');
+            started_closure = true;
         } else {
             result.push(';');
+            started_closure = false;
         }
         result.push('\n');
     }
     // Close }
-    for i in 0..(depth) {
-        result += &"    ".repeat((depth-(i+1)) as usize);
+    for i in 0..(depth+(if started_closure {1} else {0})) {
+        result += &"    ".repeat((depth+(if started_closure {1} else {0})-(i+1)) as usize);
         result += "}\n";
     }
 
