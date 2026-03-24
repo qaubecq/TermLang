@@ -3,18 +3,15 @@ Termlang is a language that can only access a 3D memory represented in the termi
 
 ## Kernel Language
 ```
-<s> ::= skip
-      | <s>;<s>
-      | [<v>,<v>,<v>]=<v>
-      | if(<v>){<s>}else{<s>}
-      | while(<v>){<s>}
-      | proc:<name>(<x>,<x>,...) { <s> } (can only be defined at the root)
-      | <name>(<v>,<v>,...)
-<v> ::= <pure number> | [<v>,<v>,<v>] | <x>
+<p> ::= [ proc:<name>(<x>,<x>,...){[<s>]} ]
+<s> ::= if(<v>){[<s>]}else{[<s>]}  |  while(<v>){[<s>]}  |  <name>(<v>,<v>,...)
+<v> ::= <pure number> | '['<v>,<v>,<v>']' | <x>
 ```
+(procedure main is called when program is ran)
 
 ## Syntaxic sugars
 - Operations : + - * / % == > < >= <= ! & | ^ >> <<  ::=  builtin functions (a+b*c is not valid as it requires an extra memory cell, it must be done in two operations)
+- Memory write : [<v>,<v>,<v>] = <v>   ::=   [<v>,<v>,<v>] = $write(<v>)  (later turned into a proc call)
 - Defining variables : define x [0,0,0]    |    define x
 - Stack : #stack x1 y1 x2 y2   (allocates part of the memory to automatically assign defines that didn't specify the address, x2 and y2 are included)
 - Getting variable address (to pass reference as argument) : #x ::= 0,0,0

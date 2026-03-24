@@ -18,9 +18,15 @@ proc: test(a, #ret) {
     {
         [20, 20, 0] = x; // Should be x=5
     }
-    if (yiipi == 3) {
-        define z;
+    define z;
+    define cond1;
+    define cond2;
+    cond1 = yiipi == 3;
+    cond2 = yiipi == 5;
+    if (cond1) {
         z = 3;
+    } else if (cond2) {
+        z = 4;
     }
 
     [ #ret ] =   x;
@@ -34,21 +40,24 @@ fn: one() {
     return:1;
 }
 
-x=identity(3);
-define patate;
-patate = one();
-x = x + patate;
-[ [0, 0] ] = identity( [0, 1, 2] );
+proc: main() {
+    x=identity(3);
+    define patate;
+    patate = one();
+    x = x + patate;
+    x = ~x;
+    [ [0, 0] ] = identity( [0, 1, 2] );
 
-#x;
+    // #x;
 
-#[[0, 0, 0], [0, 0, 1], [0, 0, 2]];
+    // #[[0, 0, 0], [0, 0, 1], [0, 0, 2]];
 
-define yiipi [11,11,0];
-yiipi = 3;
-test(3, #yiipi);
+    define yiipi [11,11,0];
+    yiipi = 3;
+    test(3, #yiipi);
 
-// Pointer test
-define p [15,15];
-[p];
-[[[0, 0, 1], [0, 0, 2]]];
+    // Pointer test
+    // define p [15,15];
+    // [p];
+    // [[[0, 0, 1], [0, 0, 2]]];
+}

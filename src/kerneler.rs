@@ -1,21 +1,30 @@
 use core::panic;
 use std::{collections::HashMap};
 
-pub fn kernel(code: String) -> Vec<CodeLine> {
+const DEFAULT_SIZE: [u8;2] = [50, 50];
+
+pub fn kernel(code: String) -> (Vec<CodeLine>, [u8;2]) {
 
 
     let mut lines: Vec<CodeLine> = to_code_lines(code);
     // Parse #size
+    let mut size = DEFAULT_SIZE;
+    if lines[0].code.starts_with("#size") {
+        size = lines[0].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #size command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #size command");
+        lines.remove(0);
+    }
     define(&mut lines);
     remove_spaces(&mut lines);
     reference(&mut lines);
     arg_reference(&mut lines);
     pointer(&mut lines);
+    dual_operations(&mut lines);
+    mono_operations(&mut lines);
+    memory_write(&mut lines);
     function(&mut lines);
     function_call(&mut lines);
-    
 
-    return lines;
+    return (lines,size);
 }
 
 
@@ -180,7 +189,7 @@ fn define(lines: &mut Vec<CodeLine>) {
 
         // If the line is #stack x1 y1 x2 y2, activate the stack
         if lines[i].code.starts_with("#stack") {
-            let [x1, y1, x2, y2]: [u8; 4] = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #stack command")).collect::<Vec<_>>().try_into().expect("Kerneler Error : Invalid #stack command");
+            let [x1, y1, x2, y2]: [u8; 4] = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #stack command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #stack command");
             stack.activate((x1, y1), (x2, y2));
             //println!("Kerneler Log : Stack activated with size {}", stack.get_used().1);
             // Delete line
@@ -474,4 +483,136 @@ fn function_call(lines: &mut Vec<CodeLine>) {
             line.code = format!("{name}({args}{addr0},{addr1},{addr2})");
         }
     }
+}
+
+
+const DUAL_OP_SYMBOLS: [&str;16] = ["+", "-", "*", "/", "%", "==", "!=", ">", "<", ">=", "<=", "&", "|", "^", ">>", "<<"];
+const MONO_OP_SYMBOLS: [&str;2] = ["!", "~"];
+const DUAL_OP_NAMES: [&str;16] = ["$add", "$sub", "$mult", "$div", "$mod", "$eq", "$neq", "$g", "$l", "$geq", "$leq", "$and", "$or", "$xor", "$rsh", "$lsh"];
+const MONO_OP_NAMES: [&str;2] = ["$bonot", "$binot"];
+
+fn dual_operations(lines: &mut Vec<CodeLine>) {
+    // Replace ...=smth1<op>smth2 with ...=<opname>(smth1,smth2)  (Which will then get turned into a procedure)
+    for line in lines {
+        for i in 0..DUAL_OP_SYMBOLS.len() {
+            if !line.starts_closure && line.code.contains('=') && line.code.contains(DUAL_OP_SYMBOLS[i]) {
+                let mut operand1 = String::new();
+                let mut operand2 = String::new();
+                let mut step = 0;
+                let mut j = line.code.len()-1;
+                loop {
+                    let c = line.code.chars().nth(j).unwrap();
+                    if step == 0 {
+                        if &line.code[j-DUAL_OP_SYMBOLS[i].len()+1..j+1] == DUAL_OP_SYMBOLS[i] {
+                            step += 1;
+                            j -= DUAL_OP_SYMBOLS[i].len()-1;
+                        } else {
+                            operand2.insert(0, c);
+                        }
+                    } else {
+                        if c == '=' {
+                            break;
+                        }
+                        operand1.insert(0, c);
+                    }
+
+                    if j == 0 {
+                        panic!("Kerneler Error : Missing =\n | {}", line.code);
+                    }
+                    j -= 1;
+                }
+                let opname = DUAL_OP_NAMES[i];
+                line.code.replace_range((j+1)..(line.code.len()), format!("{opname}({operand1},{operand2})").as_str());
+            }
+        }
+    }
+}
+
+fn mono_operations(lines: &mut Vec<CodeLine>) {
+    // Replace ...=<op>smth2 with ...=<opname>(smth1)  (Which will then get turned into a procedure)
+    for line in lines {
+        for i in 0..MONO_OP_SYMBOLS.len() {
+            if !line.starts_closure && line.code.contains('=') && line.code.contains(MONO_OP_SYMBOLS[i]) {
+                let mut operand = String::new();
+                let mut j = line.code.len()-1;
+                loop {
+                    let c = line.code.chars().nth(j).unwrap();
+                    if &line.code[j-MONO_OP_SYMBOLS[i].len()+1..j+1] == MONO_OP_SYMBOLS[i] {
+                        break;
+                    }
+                    operand.insert(0, c);
+
+                    if j == 0 {
+                        panic!("Kerneler Error : Missing =\n | {}", line.code);
+                    }
+                    j -= 1;
+                }
+                let opname = MONO_OP_NAMES[i];
+                line.code.replace_range((j)..(line.code.len()), format!("{opname}({operand})").as_str());
+            }
+        }
+    }
+}
+
+
+fn memory_write(lines: &mut Vec<CodeLine>) {
+    // Replace ...=smth with ...=$write(smth)   (Which will later get turned into a procedure)
+    for line in lines {
+        if !line.starts_closure && line.code.contains('=') && !line.code.ends_with(")") {
+            let mut value = String::new();
+            let mut i = line.code.len()-1;
+            loop {
+                let c = line.code.chars().nth(i).unwrap();
+                if c == '=' {
+                    break;
+                }
+                value.insert(0, c);
+                i -= 1;
+            }
+            line.code.replace_range((i+1)..(line.code.len()), format!("$write({value})").as_str());
+        }
+    }
+}
+
+
+fn else_if(lines: &mut Vec<CodeLine>) {
+
+}
+
+
+fn missing_else(lines: &mut Vec<CodeLine>) {
+
+}
+
+
+
+pub fn format_kernel(lines: &mut Vec<CodeLine>) -> String {
+    let mut result: String = String::new();
+    let mut depth = 0;
+    for line in lines {
+        // If new depth is smaller than current depth, add the right number of }
+        if line.depth < depth {
+            for i in 0..(depth-line.depth) {
+                result += &"    ".repeat((depth-(i+1)) as usize);
+                result += "}\n";
+            }
+        }
+        depth = line.depth;
+        // Push line
+        result += &"    ".repeat(depth as usize);
+        result += &line.code;
+        if line.starts_closure {
+            result.push('{');
+        } else {
+            result.push(';');
+        }
+        result.push('\n');
+    }
+    // Close }
+    for i in 0..(depth) {
+        result += &"    ".repeat((depth-(i+1)) as usize);
+        result += "}\n";
+    }
+
+    return result;
 }
