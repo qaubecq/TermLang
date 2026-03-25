@@ -5,15 +5,15 @@ use std::sync::atomic::{AtomicU8, Ordering};
 use std::time::Instant;
 use terminal_size::{Height, Width, terminal_size};
 
-type AtomicPixel = (AtomicU8, AtomicU8, AtomicU8);
-type Pixel = (u8, u8, u8);
+type AtomicPixel = [AtomicU8; 3];
+type Pixel = [u8; 3];
 
 fn load_pixel(pixel: &AtomicPixel) -> Pixel {
-    (
-        pixel.0.load(Ordering::Relaxed),
-        pixel.1.load(Ordering::Relaxed),
-        pixel.2.load(Ordering::Relaxed),
-    )
+    [
+        pixel[0].load(Ordering::Relaxed),
+        pixel[1].load(Ordering::Relaxed),
+        pixel[2].load(Ordering::Relaxed),
+    ]
 }
 
 struct RenderState {
@@ -39,7 +39,7 @@ impl RenderState {
             pair_rows.push(row_vec);
         }
 
-        let last_row: Option<Vec<(u8, u8, u8)>> = if sigma_height % 2 == 1 {
+        let last_row: Option<Vec<Pixel>> = if sigma_height % 2 == 1 {
             let last_idx = sigma_height as usize - 1;
             let mut row_vec = Vec::with_capacity(sigma_width as usize);
             for j in 0..sigma_width as usize {
@@ -51,10 +51,19 @@ impl RenderState {
             None
         };
 
-        RenderState {sigma_height, sigma_width, pair_rows, last_row }
+        RenderState {
+            sigma_height,
+            sigma_width,
+            pair_rows,
+            last_row,
+        }
     }
 
-    fn write_changes(&mut self, sigma: &[Vec<AtomicPixel>], buf: &mut Vec<u8>) -> std::io::Result<()> {
+    fn write_changes(
+        &mut self,
+        sigma: &[Vec<AtomicPixel>],
+        buf: &mut Vec<u8>,
+    ) -> std::io::Result<()> {
         let frame_start = Instant::now();
         let total_rows = self.sigma_height.div_ceil(2);
         let num_pairs = self.sigma_height as usize / 2;
@@ -98,11 +107,11 @@ impl RenderState {
                     prev_row[col] = cur_fg;
                     write_cursor_move(buf, row, (col as u8) + 1);
                     buf.extend_from_slice(b"\x1B[38;2;");
-                    write_u8(buf, cur_fg.0);
+                    write_u8(buf, cur_fg[0]);
                     buf.push(b';');
-                    write_u8(buf, cur_fg.1);
+                    write_u8(buf, cur_fg[1]);
                     buf.push(b';');
-                    write_u8(buf, cur_fg.2);
+                    write_u8(buf, cur_fg[2]);
                     buf.extend_from_slice(b";49m");
                     buf.extend_from_slice(b"\xE2\x96\x80");
                 }
@@ -122,7 +131,6 @@ impl RenderState {
 }
 
 pub fn render(sigma: Arc<Vec<Vec<AtomicPixel>>>) -> std::io::Result<()> {
-
     let mut buf = Vec::<u8>::new();
     buf.extend_from_slice(b"\x1B[2J\x1B[1;1H\x1B[?25l");
     let mut state = RenderState::capture_initial(&sigma);
@@ -161,16 +169,16 @@ fn write_cursor_move(buf: &mut Vec<u8>, row: u8, col: u8) {
 #[inline(always)]
 fn write_colors(buf: &mut Vec<u8>, fg: Pixel, bg: Pixel) {
     buf.extend_from_slice(b"\x1B[38;2;");
-    write_u8(buf, fg.0);
+    write_u8(buf, fg[0]);
     buf.push(b';');
-    write_u8(buf, fg.1);
+    write_u8(buf, fg[1]);
     buf.push(b';');
-    write_u8(buf, fg.2);
+    write_u8(buf, fg[2]);
     buf.extend_from_slice(b";48;2;");
-    write_u8(buf, bg.0);
+    write_u8(buf, bg[0]);
     buf.push(b';');
-    write_u8(buf, bg.1);
+    write_u8(buf, bg[1]);
     buf.push(b';');
-    write_u8(buf, bg.2);
+    write_u8(buf, bg[2]);
     buf.push(b'm');
 }

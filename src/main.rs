@@ -7,7 +7,7 @@ use std::{
     thread,
 };
 
-type AtomicPixel = (AtomicU8, AtomicU8, AtomicU8);
+type AtomicPixel = [AtomicU8; 3];
 
 fn main() {
     let width = 255;
@@ -16,7 +16,7 @@ fn main() {
         (0..height)
             .map(|_| {
                 (0..width)
-                    .map(|_| (AtomicU8::new(0), AtomicU8::new(0), AtomicU8::new(0)))
+                    .map(|_| [AtomicU8::new(0), AtomicU8::new(0), AtomicU8::new(0)])
                     .collect()
             })
             .collect(),
@@ -27,12 +27,11 @@ fn main() {
     });
     let mut rng = rand::rng();
     for _ in 0.. {
-        for y in 0..height {
-            for x in 0..width {
-                let (ref r, ref g, ref b) = sigma[y][x];
-                r.store(rng.random(), Ordering::Relaxed);
-                g.store(rng.random(), Ordering::Relaxed);
-                b.store(rng.random(), Ordering::Relaxed);
+        for x in 0..height {
+            for y in 0..width {
+                for z in 0..3 {
+                    sigma[x][y][z].store(rng.random(), Ordering::Relaxed)
+                }
             }
         }
     }
