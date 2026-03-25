@@ -1,8 +1,17 @@
 use std::{fs::File, io::Read};
+use std::{
+    sync::Arc,
+    sync::atomic::{AtomicU8, Ordering},
+    thread,
+};
+
+mod kerneler;
+mod syntax_tree;
+mod builtin;
 
 use crate::kerneler::{format_kernel, kernel};
 
-mod kerneler;
+type AtomicPixel = (AtomicU8, AtomicU8, AtomicU8);
 
 fn main() {
     // Open file
