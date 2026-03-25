@@ -1,3 +1,4 @@
+use std::vec;
 use std::{fs::File, io::Read};
 use std::{
     sync::Arc,
@@ -10,8 +11,9 @@ mod syntax_tree;
 mod builtin;
 
 use crate::kerneler::{format_kernel, kernel};
+use crate::syntax_tree::Value;
 
-type AtomicPixel = (AtomicU8, AtomicU8, AtomicU8);
+type AtomicPixel = [AtomicU8; 3];
 
 fn main() {
     // Open file
@@ -23,4 +25,15 @@ fn main() {
     let (mut lines, size) = kernel(contents);
     println!("Sigma size : {} x {}\n", size[0], size[1]);
     println!("{}", format_kernel(&mut lines));
+
+    let mut sigma: Arc<Vec<Vec<AtomicPixel>>> = Arc::new((0..5).map(|_| {(0..5).map(|_| [AtomicU8::new(0), AtomicU8::new(0), AtomicU8::new(0)]).collect()}).collect());
+
+    sigma[2][2][2].store(1, Ordering::Relaxed);
+    sigma[0][1][2].store(3, Ordering::Relaxed);
+    sigma[4][3][0].store(152, Ordering::Relaxed);
+    let args_name = vec!["x", "y"];
+    let args_value: Vec<u8> = vec![0, 2];
+    let value = Value::new("[4,[x,[2,2,2],y],x]", &args_name); // [4,[0,1,2],0] -> [4, 3, 0] -> 152
+    println!("{:?}", value);
+    println!("{}", value.eval(&sigma, &args_value))
 }
