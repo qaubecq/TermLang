@@ -29,8 +29,8 @@ fn main() {
 
     // Parse to kernel language
     let (lines, size) = kernel(contents);
-    println!("Sigma size : {} x {}\n", size[0], size[1]);
     if VERBOSE {
+        println!("Sigma size : {} x {}\n", size[0], size[1]);
         println!("{}", format_kernel(&lines));
     }
 
@@ -56,5 +56,7 @@ fn main() {
 
     // Ruuun
     interpret(tree, main_index, sigma);
-    thread::sleep(Duration::from_secs(5));
+
+    // Sleep 0.5 seconds to let render time to render last state
+    thread::sleep(Duration::from_millis(500));
 }

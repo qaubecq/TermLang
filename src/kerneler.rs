@@ -1,6 +1,8 @@
 use core::panic;
 use std::{collections::HashMap};
 
+use crate::VERBOSE;
+
 const DEFAULT_SIZE: [u8;2] = [50, 50];
 
 pub fn kernel(code: String) -> (Vec<CodeLine>, [u8;2]) {
@@ -239,7 +241,7 @@ fn define(lines: &mut Vec<CodeLine>) {
     }
 
     // Print stack usage
-    if stack.activated {
+    if stack.activated && VERBOSE {
         println!("Stack : {} bytes used out of {}", stack.get_used().0, stack.get_used().1);
     }
 

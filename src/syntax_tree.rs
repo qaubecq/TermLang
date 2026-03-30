@@ -60,7 +60,10 @@ impl Value {
         return match self {
             Value::Pure{value} => *value,
             Value::Argument { index } => args_value[*index],
-            Value::Memory(one, two, three) => sigma[Value::eval(&**one, sigma, args_value) as usize][Value::eval(&**two, sigma, args_value) as usize][Value::eval(&**three, sigma, args_value) as usize].load(std::sync::atomic::Ordering::Relaxed)
+            Value::Memory(one, two, three) => {
+                if Value::eval(&**two, sigma, args_value) as usize >= sigma.len() || Value::eval(&**one, sigma, args_value) as usize >= sigma[0].len() || Value::eval(&**three, sigma, args_value) >= 3 {panic!("Runtime Error : Invalid memory address : [{},{},{}]", Value::eval(&**one, sigma, args_value), Value::eval(&**two, sigma, args_value), Value::eval(&**three, sigma, args_value))}
+                sigma[Value::eval(&**two, sigma, args_value) as usize][Value::eval(&**one, sigma, args_value) as usize][Value::eval(&**three, sigma, args_value) as usize].load(std::sync::atomic::Ordering::Relaxed)
+            }
         };
     }
 }
