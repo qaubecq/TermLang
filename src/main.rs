@@ -1,13 +1,15 @@
 use std::{fs::File, io::Read};
 use std::{
     sync::Arc,
-    sync::atomic::{AtomicU8},
+    sync::atomic::{AtomicU8, Ordering},
+    thread,
 };
 
 mod kerneler;
 mod syntax_tree;
 mod builtin;
 mod interpreter;
+mod renderer;
 
 use crate::interpreter::interpret;
 use crate::kerneler::{format_kernel, kernel};
@@ -24,12 +26,28 @@ fn main() {
     // Parse to kernel language
     let (lines, size) = kernel(contents);
     println!("Sigma size : {} x {}\n", size[0], size[1]);
-
     println!("{}", format_kernel(&lines));
 
-    let sigma: Arc<Vec<Vec<AtomicPixel>>> = Arc::new((0..size[0]).map(|_| {(0..size[1]).map(|_| [AtomicU8::new(0), AtomicU8::new(0), AtomicU8::new(0)]).collect()}).collect());
-
+    // Create sigma
+    let width = size[0];
+    let height = size[1];
+    let sigma: Arc<Vec<Vec<AtomicPixel>>> = Arc::new(
+        (0..height)
+            .map(|_| {
+                (0..width)
+                    .map(|_| [AtomicU8::new(0), AtomicU8::new(0), AtomicU8::new(0)])
+                    .collect()
+            })
+            .collect(),
+    );
+    let render_sigma = Arc::clone(&sigma);
+    thread::spawn(move || {
+        renderer::render(render_sigma).unwrap();
+    });
+    
+    // Create syntax tree
     let (tree, main_index) = create_syntax_tree(&lines);
 
+    // Ruuun
     interpret(tree, main_index, sigma);
 }
