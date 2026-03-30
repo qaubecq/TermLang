@@ -22,10 +22,13 @@ type AtomicPixel = [AtomicU8; 3];
 const VERBOSE: bool = false;
 
 fn main() {
-    // Open file
-    let mut file = File::open(&env::args().collect::<Vec<String>>()[1]).expect("Failed to open file");
+    // Open and files
     let mut contents = String::new();
-    file.read_to_string(&mut contents).expect("Failed to read file");
+    let args = env::args().collect::<Vec<String>>();
+    for arg in args.iter().skip(1) {
+        let mut file = File::open(arg).expect("Failed to open file");
+        file.read_to_string(&mut contents).expect("Failed to read file");
+    }
 
     // Parse to kernel language
     let (lines, size) = kernel(contents);
@@ -58,5 +61,5 @@ fn main() {
     interpret(tree, main_index, sigma);
 
     // Sleep 0.5 seconds to let render time to render last state
-    thread::sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(1));
 }

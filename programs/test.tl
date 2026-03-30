@@ -1,9 +1,7 @@
-#size 40 30;
-#stack 5 5 6 6;
-
+{
 define x;
 
-proc: test(a, #ret) {
+proc: my_lib.test(a, #ret) {
     define x;
     define yiipi;
     x = 5;
@@ -40,17 +38,8 @@ proc: test(a, #ret) {
     [ #ret ] =   x;
 }
 
-fn: identity(a) {
-    return:a;
-}
-
-fn: one() {
-    while (0) {
-        
-    }
-    return:1;
-}
-
+#size 40 30;
+#stack 5 5 6 6;
 proc: main() {
     x=identity(3);
     define patate;
@@ -65,7 +54,7 @@ proc: main() {
 
     define yiipi [11,11,0];
     yiipi = 3;
-    test(3, #yiipi);
+    my_lib.test(3, #yiipi);
 
     // Pointer test
     // define p [15,15];
@@ -77,4 +66,5 @@ proc: main() {
     while (i) {
         i = i-1;
     }
+}
 }

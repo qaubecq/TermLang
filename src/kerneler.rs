@@ -11,10 +11,14 @@ pub fn kernel(code: String) -> (Vec<CodeLine>, [u8;2]) {
     let mut lines: Vec<CodeLine> = to_code_lines(code);
     // Parse #size
     let mut size = DEFAULT_SIZE;
-    if lines[0].code.starts_with("#size") {
-        size = lines[0].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #size command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #size command");
-        lines.remove(0);
+    for i in 0..lines.len() {
+        if lines[i].code.starts_with("#size") {
+            size = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #size command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #size command");
+            lines.remove(i);
+            break;
+        }
     }
+    
     define(&mut lines);
     remove_spaces(&mut lines);
     reference(&mut lines);
@@ -171,6 +175,17 @@ impl Stack {
 fn define(lines: &mut Vec<CodeLine>) {
     // Create stack struct (inactive until #struct is found)
     let mut stack: Stack = Stack::new();
+    // Find #stack if it exists
+    for i in 0..lines.len() {
+        if lines[i].code.starts_with("#stack") {
+            let [x1, y1, x2, y2]: [u8; 4] = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #stack command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #stack command");
+            stack.activate((x1, y1), (x2, y2));
+            //println!("Kerneler Log : Stack activated with size {}", stack.get_used().1);
+            // Delete line
+            lines.remove(i);
+            break;
+        }
+    }
 
     // Create Vec<HashMap> (one dict of defines per depth), when a variable is found it will be replaced by the closest occurence of that variable in the Vec<HashMap>
     let mut maps: Vec<HashMap<String, String>> = Vec::new();
@@ -190,16 +205,6 @@ fn define(lines: &mut Vec<CodeLine>) {
             }
         }
         previous_depth = lines[i].depth;
-
-        // If the line is #stack x1 y1 x2 y2, activate the stack
-        if lines[i].code.starts_with("#stack") {
-            let [x1, y1, x2, y2]: [u8; 4] = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #stack command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #stack command");
-            stack.activate((x1, y1), (x2, y2));
-            //println!("Kerneler Log : Stack activated with size {}", stack.get_used().1);
-            // Delete line
-            lines.remove(i);
-            continue;
-        }
 
         // If the line startswith "define", add an entry to the top hashmap
         if lines[i].code.starts_with("define") {
