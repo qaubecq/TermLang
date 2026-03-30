@@ -1,7 +1,9 @@
+use std::env;
+use std::time::Duration;
 use std::{fs::File, io::Read};
 use std::{
     sync::Arc,
-    sync::atomic::{AtomicU8, Ordering},
+    sync::atomic::AtomicU8,
     thread,
 };
 
@@ -17,16 +19,20 @@ use crate::syntax_tree::{create_syntax_tree};
 
 type AtomicPixel = [AtomicU8; 3];
 
+const VERBOSE: bool = false;
+
 fn main() {
     // Open file
-    let mut file = File::open("programs/test.tl").expect("Failed to open file");
+    let mut file = File::open(&env::args().collect::<Vec<String>>()[1]).expect("Failed to open file");
     let mut contents = String::new();
     file.read_to_string(&mut contents).expect("Failed to read file");
 
     // Parse to kernel language
     let (lines, size) = kernel(contents);
     println!("Sigma size : {} x {}\n", size[0], size[1]);
-    println!("{}", format_kernel(&lines));
+    if VERBOSE {
+        println!("{}", format_kernel(&lines));
+    }
 
     // Create sigma
     let width = size[0];
@@ -50,4 +56,5 @@ fn main() {
 
     // Ruuun
     interpret(tree, main_index, sigma);
+    thread::sleep(Duration::from_secs(5));
 }

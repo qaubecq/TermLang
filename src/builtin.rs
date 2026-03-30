@@ -4,24 +4,24 @@ use crate::AtomicPixel;
 
 // Arg count : 4  (value, $1, $2, $3)
 pub fn write(sigma: &Arc<Vec<Vec<AtomicPixel>>>, args: Vec<u8>) {
-    println!("[{},{},{}] := {}", args[1], args[2], args[3], args[0]);
+    //println!("[{},{},{}] := {}", args[1], args[2], args[3], args[0]);
     if args[1] as usize >= sigma.len() || args[2] as usize >= sigma[0].len() || args[3] >= 3 {panic!("Runtime Error : Invalid memory address : [{},{},{}]", args[1], args[2], args[3])}
     sigma[args[1] as usize][args[2] as usize][args[3] as usize].store(args[0], Ordering::Relaxed);
 }
 
 // Arg count : 5 (value1, value2, $1, $2, $3)
 pub fn add(sigma: &Arc<Vec<Vec<AtomicPixel>>>, args: Vec<u8>) {
-    write(sigma, vec![((args[0] as u16 + args[1] as u16) % 256 ) as u8, args[2], args[3], args[4]]);
+    write(sigma, vec![args[0].wrapping_add(args[1]), args[2], args[3], args[4]]);
 }
 
 // Arg count : 5 (value1, value2, $1, $2, $3)
 pub fn sub(sigma: &Arc<Vec<Vec<AtomicPixel>>>, args: Vec<u8>) {
-    write(sigma, vec![((args[0] as i16 - args[1] as i16) % 256 ) as u8, args[2], args[3], args[4]]);
+    write(sigma, vec![args[0].wrapping_add(args[1]), args[2], args[3], args[4]]);
 }
 
 // Arg count : 5 (value1, value2, $1, $2, $3)
 pub fn mult(sigma: &Arc<Vec<Vec<AtomicPixel>>>, args: Vec<u8>) {
-    write(sigma, vec![((args[0] as u16 * args[1] as u16) % 256 ) as u8, args[2], args[3], args[4]]);
+    write(sigma, vec![args[0].wrapping_mul(args[1]), args[2], args[3], args[4]]);
 }
 
 // Arg count : 5 (value1, value2, $1, $2, $3)

@@ -1,4 +1,4 @@
-#size 200 100;
+#size 40 30;
 #stack 5 5 6 6;
 
 define x;
