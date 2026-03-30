@@ -1,4 +1,4 @@
-use std::sync::{Arc,atomic::{self, Ordering}};
+use std::sync::{Arc,atomic::Ordering};
 
 use crate::AtomicPixel;
 

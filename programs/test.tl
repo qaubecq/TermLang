@@ -45,6 +45,9 @@ fn: identity(a) {
 }
 
 fn: one() {
+    while (0) {
+        
+    }
     return:1;
 }
 
