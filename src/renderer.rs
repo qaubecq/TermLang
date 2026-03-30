@@ -47,7 +47,7 @@ impl RenderState {
         }
     }
 
-    fn write_changes(
+    fn  write_changes(
         &mut self,
         sigma: &[Vec<AtomicPixel>],
         buf: &mut Vec<u8>,
@@ -121,6 +121,8 @@ impl RenderState {
 pub fn render(sigma: Arc<Vec<Vec<AtomicPixel>>>) -> std::io::Result<()> {
     let mut buf = Vec::<u8>::new();
     buf.extend_from_slice(b"\x1B[2J\x1B[1;1H\x1B[?25l");
+    io::stdout().write_all(&buf)?;
+    io::stdout().flush()?;
     let mut state = RenderState::build_initial(&sigma);
 
     loop {
