@@ -24,29 +24,17 @@ struct RenderState {
 }
 
 impl RenderState {
-    fn capture_initial(sigma: &[Vec<AtomicPixel>]) -> Self {
+    fn build_initial(sigma: &[Vec<AtomicPixel>]) -> Self {
         let (sigma_height, sigma_width) = (sigma.len() as u8, sigma[0].len() as u8);
 
         let num_pairs = sigma_height as usize / 2;
-        let mut pair_rows: Vec<Vec<(Pixel, Pixel)>> = Vec::with_capacity(num_pairs);
-        for i in (0..num_pairs * 2).step_by(2) {
-            let mut row_vec = Vec::with_capacity(sigma_width as usize);
-            for j in 0..sigma_width as usize {
-                let top = load_pixel(&sigma[i][j]);
-                let bottom = load_pixel(&sigma[i + 1][j]);
-                row_vec.push((top, bottom));
-            }
-            pair_rows.push(row_vec);
-        }
+        let pair_rows = vec![
+            vec![([255, 255, 255], [255, 255, 255]); sigma_width as usize];
+            num_pairs
+        ];
 
-        let last_row: Option<Vec<Pixel>> = if sigma_height % 2 == 1 {
-            let last_idx = sigma_height as usize - 1;
-            let mut row_vec = Vec::with_capacity(sigma_width as usize);
-            for j in 0..sigma_width as usize {
-                let fg = load_pixel(&sigma[last_idx][j]);
-                row_vec.push(fg);
-            }
-            Some(row_vec)
+        let last_row = if sigma_height % 2 == 1 {
+            Some(vec![[255, 255, 255]; sigma_width as usize])
         } else {
             None
         };
@@ -133,7 +121,7 @@ impl RenderState {
 pub fn render(sigma: Arc<Vec<Vec<AtomicPixel>>>) -> std::io::Result<()> {
     let mut buf = Vec::<u8>::new();
     buf.extend_from_slice(b"\x1B[2J\x1B[1;1H\x1B[?25l");
-    let mut state = RenderState::capture_initial(&sigma);
+    let mut state = RenderState::build_initial(&sigma);
 
     loop {
         state.write_changes(&sigma, &mut buf)?;
