@@ -65,8 +65,8 @@ impl Value {
     }
 }
 
-
-pub fn create_syntax_tree(lines: &Vec<CodeLine>) -> Vec<Procedure> {
+// Returns tree and index of main procedure
+pub fn create_syntax_tree(lines: &Vec<CodeLine>) -> (Vec<Procedure>, usize) {
     // Create procedure names vec with builtin functions
     let mut proc_names: Vec<&str> = vec!["$write", "$add", "$sub", "$mult", "$div", "$mod", "$eq", "$neq", "$g", "$l", "$geq", "$leq", "$and", "$or", "$xor", "$rsh", "$lsh", "$bonot", "$binot"];
 
@@ -93,6 +93,8 @@ pub fn create_syntax_tree(lines: &Vec<CodeLine>) -> Vec<Procedure> {
         Procedure::BuiltIn { arg_count: 4, func: builtin::binot }
     ];
 
+    let mut main_index: Option<usize> = None;
+
     // Go through the code to find all function names
     for line in lines {
         if line.depth == 0 {
@@ -101,6 +103,9 @@ pub fn create_syntax_tree(lines: &Vec<CodeLine>) -> Vec<Procedure> {
             }
             // Get name
             let name = line.code[5..line.code.len()].split('(').next().unwrap();
+            if name == "main" {
+                main_index = Some(proc_names.len());
+            }
             proc_names.push(name);
         }
     }
@@ -201,5 +206,5 @@ pub fn create_syntax_tree(lines: &Vec<CodeLine>) -> Vec<Procedure> {
     }
 
 
-    return procs;
+    return (procs, main_index.expect("Parsing Error : Main procedure not found"));
 }

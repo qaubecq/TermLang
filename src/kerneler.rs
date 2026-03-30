@@ -615,7 +615,7 @@ fn missing_else(lines: &mut Vec<CodeLine>) {
 
 
 
-pub fn format_kernel(lines: &mut Vec<CodeLine>) -> String {
+pub fn format_kernel(lines: &Vec<CodeLine>) -> String {
     let mut result: String = String::new();
     let mut depth = 0;
     let mut started_closure = false;
