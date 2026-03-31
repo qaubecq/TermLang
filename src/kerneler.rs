@@ -3,23 +3,23 @@ use std::{collections::HashMap};
 
 use crate::VERBOSE;
 
-const DEFAULT_SIZE: [u16;2] = [50, 50];
+const DEFAULT_SIZE: [u8;2] = [50, 50];
 
-pub fn kernel(code: String) -> (Vec<CodeLine>, [u16;2]) {
+pub fn kernel(code: String) -> (Vec<CodeLine>, [u8;2]) {
 
 
     let mut lines: Vec<CodeLine> = to_code_lines(code);
     // Parse #size
-    let mut size: [u16;2] = DEFAULT_SIZE;
+    let mut size: [u8;2] = DEFAULT_SIZE;
     for i in 0..lines.len() {
         if lines[i].code.starts_with("#size") {
-            size = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #size command")).collect::<Vec<u16>>().try_into().expect("Kerneler Error : Invalid #size command");
+            size = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #size command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #size command");
             lines.remove(i);
             break;
         }
     }
     
-    define(&mut lines);
+    define(&mut lines, size[0], size[1]);
     remove_spaces(&mut lines);
     reference(&mut lines);
     arg_reference(&mut lines);
@@ -194,7 +194,7 @@ impl Stack {
     }
 }
 
-fn define(lines: &mut Vec<CodeLine>) {
+fn define(lines: &mut Vec<CodeLine>, width: u8, height: u8) {
     // Create stack struct (inactive until #struct is found)
     let mut stack: Stack = Stack::new();
     // Find #stack if it exists
@@ -213,6 +213,9 @@ fn define(lines: &mut Vec<CodeLine>) {
     let mut maps: Vec<HashMap<String, String>> = Vec::new();
     // Push global map
     maps.push(HashMap::new());
+    // Add width and height
+    maps[0].insert("WIDTH".to_string(), width.to_string());
+    maps[0].insert("HEIGHT".to_string(), height.to_string());
     let mut previous_depth = 0;
     let mut i = 0;
     while i < lines.len() {

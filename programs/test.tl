@@ -71,8 +71,8 @@ proc: main() {
     define* ptr1;
     [#ptr1,0] = 15;
     define* ptr2;
-    [#ptr2,0] = 15;
+    [#ptr2,0] = WIDTH;
     define* ptr3;
-    [#ptr3,0] = 15;
+    [#ptr3,0] = HEIGHT;
 }
 }
