@@ -3,17 +3,17 @@ use std::{collections::HashMap};
 
 use crate::VERBOSE;
 
-const DEFAULT_SIZE: [u8;2] = [50, 50];
+const DEFAULT_SIZE: [u16;2] = [50, 50];
 
-pub fn kernel(code: String) -> (Vec<CodeLine>, [u8;2]) {
+pub fn kernel(code: String) -> (Vec<CodeLine>, [u16;2]) {
 
 
     let mut lines: Vec<CodeLine> = to_code_lines(code);
     // Parse #size
-    let mut size = DEFAULT_SIZE;
+    let mut size: [u16;2] = DEFAULT_SIZE;
     for i in 0..lines.len() {
         if lines[i].code.starts_with("#size") {
-            size = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #size command")).collect::<Vec<u8>>().try_into().expect("Kerneler Error : Invalid #size command");
+            size = lines[i].code.split_whitespace().skip(1).map(|v| v.parse().expect("Kerneler Error : Invalid #size command")).collect::<Vec<u16>>().try_into().expect("Kerneler Error : Invalid #size command");
             lines.remove(i);
             break;
         }
@@ -124,11 +124,13 @@ struct Stack {
     pub activated: bool,
     start: (u8, u8),
     end: (u8, u8),
-    current: (u8, u8, u8)
+    current: (u8, u8, u8),
+    current_ptr: (u8,u8),
+    ptr_full: bool
 }
 impl Stack {
     pub fn new() -> Self {
-        return Stack { activated: false, start: (0, 0), end: (0, 0), current: (0, 0, 0)};
+        return Stack { activated: false, start: (0, 0), end: (0, 0), current: (0, 0, 0), current_ptr: (0, 0), ptr_full: false};
     }
 
     pub fn activate(&mut self, start: (u8, u8), end: (u8, u8)) {
@@ -143,10 +145,11 @@ impl Stack {
         self.start = start;
         self.end = end;
         self.current = (start.0, start.1, 0);
+        self.current_ptr = (end.0, end.1);
     }
 
     pub fn get(&mut self) -> (u8, u8, u8) {
-        if self.current.2 == 3 {
+        if self.current.2 == 3 || (self.current.0 + (self.end.0-self.start.0+1)*self.current.1 > self.current_ptr.0 + (self.end.0-self.start.0+1)*self.current_ptr.1) {
             panic!("Kerneler Error : Stack Overflow");
         }
         // Returns current and increments current
@@ -162,6 +165,25 @@ impl Stack {
             self.current.1 += 1;
         } else {
             self.current.2 = 3;
+        }
+
+        return ret;
+    }
+
+    pub fn get_ptr(&mut self) -> (u8, u8) {
+        if self.ptr_full || (self.current.0 + (self.end.0-self.start.0+1)*self.current.1 > self.current_ptr.0 + (self.end.0-self.start.0+1)*self.current_ptr.1) || ((self.current.0 + (self.end.0-self.start.0+1)*self.current.1 > self.current_ptr.0 + (self.end.0-self.start.0+1)*self.current_ptr.1) && self.current.2 > 0) {
+            panic!("Kerneler Error : Stack Overflow");
+        }
+
+        // Returns current_ptr and decrement current_ptr
+        let ret = self.current_ptr;
+        if self.current_ptr.0 > self.start.0 {
+            self.current_ptr.0 -= 1;
+        } else if self.current_ptr.1 > self.start.1 {
+            self.current_ptr.0 = self.end.0;
+            self.current_ptr.1 -= 1;
+        } else {
+            self.ptr_full = true;
         }
 
         return ret;
@@ -207,7 +229,7 @@ fn define(lines: &mut Vec<CodeLine>) {
         previous_depth = lines[i].depth;
 
         // If the line startswith "define", add an entry to the top hashmap
-        if lines[i].code.starts_with("define") {
+        if lines[i].code.starts_with("define ") {
             let args: Vec<&str> = lines[i].code.split_whitespace().skip(1).collect();
             if args.len() == 1 {
                 if !stack.activated {
@@ -220,6 +242,23 @@ fn define(lines: &mut Vec<CodeLine>) {
                 maps.last_mut().unwrap().insert(args[0].to_string(), args[1].to_string());
             } else {
                 panic!("Kerneler Error : Invalid number of arguments for define\n | {}", lines[i].code);
+            }
+            // Delete line
+            lines.remove(i);
+            continue;
+        }
+        // If the line startswith "define*", allocate a pointer
+        else if lines[i].code.starts_with("define*") {
+            let args: Vec<&str> = lines[i].code.split_whitespace().skip(1).collect();
+            if args.len() == 1 {
+                if !stack.activated {
+                    panic!("Kerneler Error : define* : Stack is not activated\n | {}", lines[i].code);
+                }
+                let value = stack.get_ptr();
+                maps.last_mut().unwrap().insert(args[0].to_string(), format!("[{},{}]", value.0, value.1).to_string());
+            }
+            else {
+                panic!("Kerneler Error : Invalid number of arguments for define*\n | {}", lines[i].code);
             }
             // Delete line
             lines.remove(i);

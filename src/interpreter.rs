@@ -15,6 +15,7 @@ pub fn interpret(tree: Vec<Procedure>, main_index: usize, sigma: Arc<Vec<Vec<Ato
     // Create stack and push main
     let mut stack: Vec<StackFrame> = Vec::new();
     stack.push(StackFrame { proc_index: main_index, args: Vec::new(), inst_index: 0, closure_stack: Vec::new() }); // Args can later be replaced by program args
+    check(&mut stack, &tree);
 
     // Interpret Loop
     while !stack.is_empty() {
@@ -49,13 +50,13 @@ pub fn interpret(tree: Vec<Procedure>, main_index: usize, sigma: Arc<Vec<Vec<Ato
             Instruction::Call { proc_index, args } => {
                 match &tree[*proc_index] {
                     Procedure::BuiltIn { arg_count, func } => {
-                        if *arg_count != args.len() { panic!("Runtime Error : Invalid argument count on procedure call {} instead of {}", args.len(), *arg_count); }
+                        if *arg_count != args.len() { print!("\x1B[48;2;200;0;0"); panic!("Runtime Error : Invalid argument count on procedure call {} instead of {}", args.len(), *arg_count); }
                         func(&sigma, args.iter().map(|a| a.eval(&sigma, &stack.last_mut().unwrap().args)).collect());
                         stack.last_mut().unwrap().inst_index += 1;
                         check(&mut stack, &tree);
                     },
                     Procedure::BuiltOut { arg_count, code: _ } => {
-                        if *arg_count != args.len() { panic!("Runtime Error : Invalid argument count on procedure call {} instead of {}", args.len(), *arg_count); }
+                        if *arg_count != args.len() { print!("\x1B[48;2;200;0;0"); panic!("Runtime Error : Invalid argument count on procedure call {} instead of {}", args.len(), *arg_count); }
                         let args_value = args.iter().map(|a| a.eval(&sigma, &stack.last_mut().unwrap().args)).collect();
                         stack.push(StackFrame { proc_index: *proc_index, args: args_value, inst_index: 0, closure_stack: Vec::new() });
                         check(&mut stack, &tree);

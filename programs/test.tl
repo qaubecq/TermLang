@@ -39,7 +39,7 @@ proc: my_lib.test(a, #ret) {
 }
 
 #size 40 30;
-#stack 5 5 6 6;
+#stack 5 5 6 7;
 proc: main() {
     x=identity(3);
     define patate;
@@ -66,5 +66,13 @@ proc: main() {
     while (i) {
         i = i-1;
     }
+
+
+    define* ptr1;
+    [#ptr1,0] = 15;
+    define* ptr2;
+    [#ptr2,0] = 15;
+    define* ptr3;
+    [#ptr3,0] = 15;
 }
 }

@@ -19,7 +19,7 @@ use crate::syntax_tree::{create_syntax_tree};
 
 type AtomicPixel = [AtomicU8; 3];
 
-const VERBOSE: bool = false;
+const VERBOSE: bool = true;
 
 fn main() {
     // Open and files

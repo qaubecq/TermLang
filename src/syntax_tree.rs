@@ -44,11 +44,12 @@ impl Value {
                     index += 1;
                     continue;
                 }
+                if index >= 3 {
+                    panic!("Value Parse Error : Invalid memory read : {}", str);
+                }
                 addr[index].push(char);
             }
-            if addr.len() != 3 {
-                panic!("Value Parse Error : Invalid memory read : {}", str);
-            }
+            
             return Value::Memory(Box::new(Self::new(addr[0].as_str(), arg_names)), Box::new(Self::new(addr[1].as_str(), arg_names)), Box::new(Self::new(addr[2].as_str(), arg_names)));
         } 
         else {

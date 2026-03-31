@@ -2,7 +2,7 @@ use std::io;
 use std::io::Write;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::time::Instant;
+//use std::time::Instant;
 use terminal_size::{Height, Width, terminal_size};
 
 type AtomicPixel = [AtomicU8; 3];
@@ -52,7 +52,7 @@ impl RenderState {
         sigma: &[Vec<AtomicPixel>],
         buf: &mut Vec<u8>,
     ) -> std::io::Result<()> {
-        let frame_start = Instant::now();
+        //let frame_start = Instant::now();
         let total_rows = self.sigma_height.div_ceil(2);
         let num_pairs = self.sigma_height as usize / 2;
         if let Some((Width(w), Height(h))) = terminal_size() {
@@ -110,7 +110,7 @@ impl RenderState {
         write_cursor_move(buf, status_line, 1);
         buf.extend_from_slice(b"\x1B[0m");
         buf.extend_from_slice(b"\x1B[2K");
-        write!(buf, "Frame Time: {:?}", frame_start.elapsed())?;
+        //write!(buf, "Frame Time: {:?}", frame_start.elapsed())?;
         buf.extend_from_slice(b"\x1B[0m");
         buf.extend_from_slice(b"\x1B[?2026l");
 
