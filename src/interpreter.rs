@@ -55,8 +55,8 @@ pub fn interpret(tree: Vec<Procedure>, main_index: usize, sigma: Arc<Vec<Vec<Ato
                         stack.last_mut().unwrap().inst_index += 1;
                         check(&mut stack, &tree);
                     },
-                    Procedure::BuiltOut { arg_count, code: _ } => {
-                        if *arg_count != args.len() { print!("\x1B[48;2;200;0;0"); panic!("Runtime Error : Invalid argument count on procedure call {} instead of {}", args.len(), *arg_count); }
+                    Procedure::BuiltOut { arg_count, code } => {
+                        if *arg_count != args.len() { print!("\x1B[48;2;200;0;0"); panic!("Runtime Error : Invalid argument count on procedure call {} instead of {} \n Procedure tree : \n {:?}", args.len(), *arg_count, code); }
                         let args_value = args.iter().map(|a| a.eval(&sigma, &stack.last_mut().unwrap().args)).collect();
                         stack.push(StackFrame { proc_index: *proc_index, args: args_value, inst_index: 0, closure_stack: Vec::new() });
                         check(&mut stack, &tree);

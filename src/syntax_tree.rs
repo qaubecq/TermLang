@@ -122,7 +122,11 @@ pub fn create_syntax_tree(lines: &Vec<CodeLine>) -> (Vec<Procedure>, usize) {
             // Get arg names
             args = if let Some(start) = line.code.find('(') {
                 let inside = &line.code[start + 1..line.code.len() - 1];
-                inside.split(',').collect()
+                if inside.is_empty() {
+                    Vec::new()
+                } else {
+                    inside.split(',').collect()
+                }
             } else {
                 panic!("Parsing Error : Invalid procedure definition\n | {}", line.code);
             };
@@ -200,7 +204,10 @@ pub fn create_syntax_tree(lines: &Vec<CodeLine>) -> (Vec<Procedure>, usize) {
                     }
                     buffer.push(char);
                 }
-                arg_names.push(buffer);
+                // If buffer is not empty, push the last element
+                if !buffer.is_empty() {
+                    arg_names.push(buffer);
+                }
                 arg_names.iter().map(|s| Value::new(s, &args)).collect()
             } else {
                 panic!("Parsing Error : Invalid procedure call\n | {}", line.code);
