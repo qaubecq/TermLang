@@ -537,9 +537,9 @@ fn function_call(lines: &mut Vec<CodeLine>) {
 }
 
 
-const DUAL_OP_SYMBOLS: [&str;16] = ["+", "-", "*", "/", "%", "==", "!=", ">", "<", ">=", "<=", "&", "|", "^", ">>", "<<"];
+const DUAL_OP_SYMBOLS: [&str;16] = ["+", "-", "*", "/", "%", "==", "!=", ">=", "<=", "&", "|", "^", ">>", "<<", ">", "<"];
 const MONO_OP_SYMBOLS: [&str;2] = ["!", "~"];
-const DUAL_OP_NAMES: [&str;16] = ["$add", "$sub", "$mult", "$div", "$mod", "$eq", "$neq", "$g", "$l", "$geq", "$leq", "$and", "$or", "$xor", "$rsh", "$lsh"];
+const DUAL_OP_NAMES: [&str;16] = ["$add", "$sub", "$mult", "$div", "$mod", "$eq", "$neq", "$geq", "$leq", "$and", "$or", "$xor", "$rsh", "$lsh", "$g", "$l"];
 const MONO_OP_NAMES: [&str;2] = ["$bonot", "$binot"];
 
 fn dual_operations(lines: &mut Vec<CodeLine>) {
