@@ -149,7 +149,7 @@ impl Stack {
     }
 
     pub fn get(&mut self) -> (u8, u8, u8) {
-        if self.current.2 == 3 || (self.current.0 + (self.end.0-self.start.0+1)*self.current.1 > self.current_ptr.0 + (self.end.0-self.start.0+1)*self.current_ptr.1) {
+        if self.current.2 == 3 || (self.current.0 as u16 + (self.end.0-self.start.0+1) as u16 *self.current.1 as u16 > self.current_ptr.0 as u16 + (self.end.0-self.start.0+1) as u16 *self.current_ptr.1 as u16) {
             panic!("Kerneler Error : Stack Overflow");
         }
         // Returns current and increments current
@@ -171,7 +171,7 @@ impl Stack {
     }
 
     pub fn get_ptr(&mut self) -> (u8, u8) {
-        if self.ptr_full || (self.current.0 + (self.end.0-self.start.0+1)*self.current.1 > self.current_ptr.0 + (self.end.0-self.start.0+1)*self.current_ptr.1) || ((self.current.0 + (self.end.0-self.start.0+1)*self.current.1 > self.current_ptr.0 + (self.end.0-self.start.0+1)*self.current_ptr.1) && self.current.2 > 0) {
+        if self.ptr_full || (self.current.0 as u16 + (self.end.0-self.start.0+1) as u16 *self.current.1 as u16 > self.current_ptr.0 as u16 + (self.end.0-self.start.0+1) as u16*self.current_ptr.1 as u16) || ((self.current.0 as u16 + (self.end.0-self.start.0+1) as u16*self.current.1 as u16 > self.current_ptr.0 as u16 + (self.end.0-self.start.0+1) as u16 *self.current_ptr.1 as u16) && self.current.2 > 0) {
             panic!("Kerneler Error : Stack Overflow");
         }
 
@@ -652,6 +652,11 @@ fn missing_else(lines: &mut Vec<CodeLine>) {
             // Jump to first line after if
             while j<lines.len() && lines[j].depth >= lines[i].depth+1 {
                 j += 1;
+            }
+
+            // If j is lines.len(), push new line
+            if j==lines.len() {
+                lines.push(CodeLine { code: "else".to_string(), depth: lines[i].depth, starts_closure: true });
             }
 
             // If it's already an else statement, do nothing, else insert an else statement

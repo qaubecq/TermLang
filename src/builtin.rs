@@ -5,7 +5,7 @@ use crate::AtomicPixel;
 // Arg count : 4  (value, $1, $2, $3)
 pub fn write(sigma: &Arc<Vec<Vec<AtomicPixel>>>, args: Vec<u8>) {
     //println!("[{},{},{}] := {}", args[1], args[2], args[3], args[0]);
-    if args[2] as usize >= sigma.len() || args[1] as usize >= sigma[0].len() || args[3] >= 3 {panic!("Runtime Error : Invalid memory address : [{},{},{}]", args[2], args[1], args[3])}
+    if args[2] as usize >= sigma.len() || args[1] as usize >= sigma[0].len() || args[3] >= 3 {panic!("Runtime Error : Invalid memory address : [{},{},{}]", args[1], args[2], args[3])}
     sigma[args[2] as usize][args[1] as usize][args[3] as usize].store(args[0], Ordering::Relaxed);
 }
 

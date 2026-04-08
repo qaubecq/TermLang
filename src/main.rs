@@ -61,5 +61,5 @@ fn main() {
     interpret(tree, main_index, sigma);
 
     // Sleep 0.5 seconds to let render time to render last state
-    thread::sleep(Duration::from_millis(1));
+    thread::sleep(Duration::from_millis(500));
 }
