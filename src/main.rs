@@ -22,10 +22,15 @@ type AtomicPixel = [AtomicU8; 3];
 const VERBOSE: bool = true;
 
 fn main() {
+    let mut renderer_active = true;
     // Open and files
     let mut contents = String::new();
     let args = env::args().collect::<Vec<String>>();
     for arg in args.iter().skip(1) {
+        if arg == "--no_renderer" {
+            renderer_active = false;
+            continue;
+        }
         let mut file = File::open(arg).expect("Failed to open file");
         file.read_to_string(&mut contents).expect("Failed to read file");
     }
@@ -49,10 +54,12 @@ fn main() {
             })
             .collect(),
     );
-    let render_sigma = Arc::clone(&sigma);
-    thread::spawn(move || {
-        renderer::render(render_sigma).unwrap();
-    });
+    if renderer_active {
+        let render_sigma = Arc::clone(&sigma);
+        thread::spawn(move || {
+            renderer::render(render_sigma).unwrap();
+        });
+    }
     
     // Create syntax tree
     let (tree, main_index) = create_syntax_tree(&lines);
